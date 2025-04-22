@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
 
 # renovate: datasource=github-releases packageName=librenms/librenms versioning=semver
-ARG LIBRENMS_VERSION="25.2.0"
-ARG WEATHERMAP_PLUGIN_COMMIT="0b2ff643b65ee4948e4f74bb5cad5babdaddef27"
 ARG ALPINE_VERSION="3.21"
 ARG SYSLOGNG_VERSION="4.8.1-r1"
 
@@ -103,25 +101,24 @@ RUN apk --update --no-cache add syslog-ng=${SYSLOGNG_VERSION}
 ENV S6_BEHAVIOUR_IF_STAGE2_FAILS="2" \
   LIBRENMS_PATH="/opt/librenms" \
   LIBRENMS_DOCKER="1" \
-  TZ="UTC" \
+  TZ="Europe/Oslo" \
   PUID="1000" \
   PGID="1000"
 
 RUN addgroup -g ${PGID} librenms \
   && adduser -D -h /home/librenms -u ${PUID} -G librenms -s /bin/sh -D librenms \
-  && curl -sSLk -q https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro -o /usr/bin/distro \
+  && curl -sSLk -q https://raw.githubusercontent.com/runnane/librenms-agent/master/snmp/distro -o /usr/bin/distro \
   && chmod +x /usr/bin/distro
 
 WORKDIR ${LIBRENMS_PATH}
-ARG LIBRENMS_VERSION
 ARG WEATHERMAP_PLUGIN_COMMIT
 RUN apk --update --no-cache add -t build-dependencies \
     build-base \
     linux-headers \
     musl-dev \
     python3-dev \
-  && echo "Installing LibreNMS https://github.com/librenms/librenms.git#${LIBRENMS_VERSION}..." \
-  && git clone --depth=1 --branch ${LIBRENMS_VERSION} https://github.com/librenms/librenms.git . \
+  && echo "Installing LibreNMS https://github.com/runnane/librenms.git#master..." \
+  && git clone --depth=1 https://github.com/runnane/librenms.git . \
   && pip3 install --ignore-installed -r requirements.txt --upgrade --break-system-packages \
   && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi \
   && mkdir config.d \
@@ -130,17 +127,10 @@ RUN apk --update --no-cache add -t build-dependencies \
   && sed -i '/runningUser/d' lnms \
   && echo "foreach (glob(\"/data/config/*.php\") as \$filename) include \$filename;" >> config.php \
   && echo "foreach (glob(\"${LIBRENMS_PATH}/config.d/*.php\") as \$filename) include \$filename;" >> config.php \
-  && ( \
-    git clone https://github.com/librenms-plugins/Weathermap.git ./html/plugins/Weathermap \
-    && cd ./html/plugins/Weathermap \
-    && git reset --hard $WEATHERMAP_PLUGIN_COMMIT \
-  ) \
   && chown -R nobody:nogroup ${LIBRENMS_PATH} \
   && apk del build-dependencies \
   && rm -rf .git \
     html/plugins/Test \
-    html/plugins/Weathermap/.git \
-    html/plugins/Weathermap/configs \
     doc/ \
     tests/ \
     /tmp/*
