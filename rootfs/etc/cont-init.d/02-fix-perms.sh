@@ -6,6 +6,8 @@ echo "Fixing perms..."
 mkdir -p /data \
   /var/run/nginx \
   /var/run/php-fpm
+# Ensure .env exists before chown; 03-config.sh populates it later
+touch "${LIBRENMS_PATH}/.env"
 chown librenms:librenms \
   /data \
   "${LIBRENMS_PATH}" \

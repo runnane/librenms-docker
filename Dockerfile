@@ -122,6 +122,7 @@ RUN apk --update --no-cache add -t build-dependencies \
   && echo "Installing LibreNMS https://github.com/runnane/librenms.git#master..." \
   && git clone --depth=1 https://github.com/runnane/librenms.git . \
   && pip3 install --ignore-installed -r requirements.txt --upgrade --break-system-packages \
+  && pip3 install 'redis<8' --break-system-packages \
   && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi --no-scripts \
   && mkdir config.d \
   && cp config.php.default config.php \
