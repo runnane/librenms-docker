@@ -122,14 +122,15 @@ RUN apk --update --no-cache add -t build-dependencies \
   && echo "Installing LibreNMS https://github.com/runnane/librenms.git#master..." \
   && git clone --depth=1 https://github.com/runnane/librenms.git . \
   && pip3 install --ignore-installed -r requirements.txt --upgrade --break-system-packages \
-  && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi \
+  && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi --no-scripts \
   && mkdir config.d \
   && cp config.php.default config.php \
   && cp snmpd.conf.example /etc/snmp/snmpd.conf \
   && sed -i '/runningUser/d' lnms \
   && echo "foreach (glob(\"/data/config/*.php\") as \$filename) include \$filename;" >> config.php \
   && echo "foreach (glob(\"${LIBRENMS_PATH}/config.d/*.php\") as \$filename) include \$filename;" >> config.php \
-  && chown -R nobody:nogroup ${LIBRENMS_PATH} \
+  && chown -R librenms:librenms ${LIBRENMS_PATH} \
+  && su librenms -c "COMPOSER_CACHE_DIR=/tmp composer run-script post-autoload-dump" \
   && apk del build-dependencies \
   && rm -rf .git \
     html/plugins/Test \
