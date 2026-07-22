@@ -1,0 +1,68 @@
+name: Sync upstream
+
+# Keeps this fork current with upstream librenms/docker while preserving the
+# runnane build customizations. Merges upstream/master into a branch and opens
+# a PR (so upstream changes are reviewed/tested before landing on the build
+# branch). Conflicts are committed with markers and flagged on the PR.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream into a sync branch
+        id: merge
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/librenms/docker.git
+          git fetch upstream master
+          base="${GITHUB_REF_NAME}"
+          git checkout -B sync/upstream "origin/${base}"
+          if git merge --no-edit upstream/master; then
+            echo "conflicts=false" >> "$GITHUB_OUTPUT"
+          else
+            # Keep conflict markers so they can be resolved in the PR.
+            git add -A
+            git commit --no-edit || git commit -m "Merge upstream/master (CONFLICTS to resolve)"
+            echo "conflicts=true" >> "$GITHUB_OUTPUT"
+          fi
+          if git diff --quiet "origin/${base}" HEAD; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "base=${base}" >> "$GITHUB_OUTPUT"
+
+      - name: Push sync branch and open/update PR
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git push -f origin sync/upstream
+          title="Sync upstream librenms/docker"
+          if [ "${{ steps.merge.outputs.conflicts }}" = "true" ]; then
+            title="Sync upstream librenms/docker (⚠️ conflicts to resolve)"
+          fi
+          if gh pr view sync/upstream >/dev/null 2>&1; then
+            gh pr edit sync/upstream --title "$title"
+          else
+            gh pr create --base "${{ steps.merge.outputs.base }}" --head sync/upstream \
+              --title "$title" \
+              --body "Automated merge of upstream \`librenms/docker@master\` into the fork's build branch. Review (and resolve any conflicts) before merging, since this pulls upstream Dockerfile/init changes on top of the runnane customizations."
+          fi
