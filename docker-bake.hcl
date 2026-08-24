@@ -33,5 +33,9 @@ target "image-all" {
   platforms = [
     "linux/amd64",
     "linux/arm64",
+<<<<<<< HEAD
+=======
+    "linux/s390x"
+>>>>>>> upstream/master
   ]
 }

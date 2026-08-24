@@ -1,13 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # renovate: datasource=github-releases packageName=librenms/librenms versioning=semver
-ARG LIBRENMS_VERSION="25.6.0"
-ARG ALPINE_VERSION="3.22"
-ARG SYSLOGNG_VERSION="4.8.3-r1"
+ARG LIBRENMS_VERSION="26.8.1"
+ARG ALPINE_VERSION="3.23"
+ARG SYSLOGNG_VERSION="4.10.2-r1"
 
-FROM crazymax/yasu:latest AS yasu
+FROM tianon/gosu:latest AS gosu
+
 FROM crazymax/alpine-s6:${ALPINE_VERSION}-2.2.0.3
-COPY --from=yasu / /
+COPY --from=gosu /gosu /usr/local/bin/
 RUN apk --update --no-cache add \
     busybox-extras \
     acl \
@@ -35,35 +36,36 @@ RUN apk --update --no-cache add \
     openssl \
     openssh-client \
     perl \
-    php83 \
-    php83-cli \
-    php83-ctype \
-    php83-curl \
-    php83-dom \
-    php83-fileinfo \
-    php83-fpm \
-    php83-gd \
-    php83-gmp \
-    php83-iconv \
-    php83-json \
-    php83-ldap \
-    php83-mbstring \
-    php83-mysqlnd \
-    php83-opcache \
-    php83-openssl \
-    php83-pdo \
-    php83-pdo_mysql \
-    php83-pecl-memcached \
-    php83-pear \
-    php83-phar \
-    php83-posix \
-    php83-session \
-    php83-simplexml \
-    php83-snmp \
-    php83-sockets \
-    php83-tokenizer \
-    php83-xml \
-    php83-zip \
+    php84 \
+    php84-cli \
+    php84-ctype \
+    php84-curl \
+    php84-dom \
+    php84-fileinfo \
+    php84-fpm \
+    php84-gd \
+    php84-gmp \
+    php84-iconv \
+    php84-json \
+    php84-ldap \
+    php84-mbstring \
+    php84-mysqlnd \
+    php84-opcache \
+    php84-openssl \
+    php84-pdo \
+    php84-pdo_mysql \
+    php84-pecl-memcached \
+    php84-pear \
+    php84-phar \
+    php84-posix \
+    php84-session \
+    php84-simplexml \
+    php84-snmp \
+    php84-sockets \
+    php84-tokenizer \
+    php84-xml \
+    php84-xmlwriter \
+    php84-zip \
     python3 \
     py3-pip \
     rrdtool \
@@ -122,8 +124,11 @@ RUN apk --update --no-cache add -t build-dependencies \
   && echo "Installing LibreNMS https://github.com/runnane/librenms.git#master..." \
   && git clone --depth=1 https://github.com/runnane/librenms.git . \
   && pip3 install --ignore-installed -r requirements.txt --upgrade --break-system-packages \
+<<<<<<< HEAD
   && pip3 install 'redis<8' --break-system-packages \
   && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi --no-scripts \
+=======
+>>>>>>> upstream/master
   && mkdir config.d \
   && cp config.php.default config.php \
   && cp snmpd.conf.example /etc/snmp/snmpd.conf \
@@ -131,7 +136,11 @@ RUN apk --update --no-cache add -t build-dependencies \
   && echo "foreach (glob(\"/data/config/*.php\") as \$filename) include \$filename;" >> config.php \
   && echo "foreach (glob(\"${LIBRENMS_PATH}/config.d/*.php\") as \$filename) include \$filename;" >> config.php \
   && chown -R librenms:librenms ${LIBRENMS_PATH} \
+<<<<<<< HEAD
   && su librenms -c "COMPOSER_CACHE_DIR=/tmp composer run-script post-autoload-dump" \
+=======
+  && su librenms -s /bin/sh -c "COMPOSER_CACHE_DIR=/tmp composer install --no-dev --no-interaction --no-ansi" \
+>>>>>>> upstream/master
   && apk del build-dependencies \
   && rm -rf .git \
     html/plugins/Test \
